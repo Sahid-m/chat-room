@@ -5,4 +5,6 @@ Tasks to do :
 - [x] Make a chatroom with 4 players only and keep a waiting room
 - [ ] Make it better
 - [ ] Add Variable Room Creation
+- [ ] Add things for WebRTC Implementation
+- [ ] Finalize webRTC implementation
 - [ ] Add DB and Redis
