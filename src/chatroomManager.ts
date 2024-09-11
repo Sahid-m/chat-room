@@ -23,14 +23,10 @@ export interface player {
 
 export class chatroomManager {
   private players: player[];
-  private waitingPlayers: player[];
-  private inRoomPlayers: player[];
   private activeRooms: ChatRoom[];
 
   constructor() {
     this.players = [];
-    this.waitingPlayers = [];
-    this.inRoomPlayers = [];
     this.activeRooms = [];
   }
 
@@ -50,12 +46,6 @@ export class chatroomManager {
     if (playerToRemove) {
       console.log("User disconnected: " + playerToRemove.name);
       this.players = this.players.filter((user) => user.socket !== Socket);
-      this.waitingPlayers = this.waitingPlayers.filter(
-        (user) => user.socket !== Socket
-      );
-      this.inRoomPlayers = this.inRoomPlayers.filter(
-        (user) => user.socket !== Socket
-      );
 
       // Remove player from active room if they're in one
       this.activeRooms.forEach((room, index) => {
@@ -112,7 +102,6 @@ export class chatroomManager {
 
   private handleInitGame(player: player) {
     this.updatePlayerStatus(player, playerStatus.WaitingForPlayers);
-    this.waitingPlayers.push(player);
 
     player.socket.send(
       JSON.stringify({
@@ -121,8 +110,11 @@ export class chatroomManager {
       })
     );
 
-    if (this.waitingPlayers.length >= 4) {
-      this.startGame(this.waitingPlayers.splice(0, 4));
+    const waitingPlayers = this.players.filter(
+      (p) => p.status === playerStatus.WaitingForPlayers
+    );
+    if (waitingPlayers.length >= 4) {
+      this.startGame(waitingPlayers.slice(0, 4));
     }
   }
 
@@ -133,15 +125,12 @@ export class chatroomManager {
     const players = newRoom.getPlayers();
     players.forEach((player) => {
       this.updatePlayerStatus(player, playerStatus.InRoom);
-      this.inRoomPlayers.push(player);
-      this.waitingPlayers = this.waitingPlayers.filter(
-        (p) => p.socket !== player.socket
-      );
 
       player.socket.send(
         JSON.stringify({
           type: "GAME_START",
           message: "Game is starting. Your role is: " + player.role,
+          roomID: newRoom.RoomID,
           role: player.role,
         })
       );
@@ -189,27 +178,11 @@ export class chatroomManager {
 
   private updatePlayerStatus(player: player, newStatus: playerStatus) {
     // Update in the main players array
-    const mainPlayerIndex = this.players.findIndex(
+    const playerIndex = this.players.findIndex(
       (p) => p.socket === player.socket
     );
-    if (mainPlayerIndex !== -1) {
-      this.players[mainPlayerIndex].status = newStatus;
-    }
-
-    // Update in the waiting players array
-    const waitingPlayerIndex = this.waitingPlayers.findIndex(
-      (p) => p.socket === player.socket
-    );
-    if (waitingPlayerIndex !== -1) {
-      this.waitingPlayers[waitingPlayerIndex].status = newStatus;
-    }
-
-    // Update in the in-room players array
-    const inRoomPlayerIndex = this.inRoomPlayers.findIndex(
-      (p) => p.socket === player.socket
-    );
-    if (inRoomPlayerIndex !== -1) {
-      this.inRoomPlayers[inRoomPlayerIndex].status = newStatus;
+    if (playerIndex !== -1) {
+      this.players[playerIndex].status = newStatus;
     }
 
     // Update the player object itself
@@ -221,9 +194,5 @@ export class chatroomManager {
   private logPlayerStatuses() {
     console.log("All players:");
     this.players.forEach((p) => console.log(`${p.name}: ${p.status}`));
-    console.log("Waiting players:");
-    this.waitingPlayers.forEach((p) => console.log(`${p.name}: ${p.status}`));
-    console.log("In-room players:");
-    this.inRoomPlayers.forEach((p) => console.log(`${p.name}: ${p.status}`));
   }
 }

@@ -11,6 +11,7 @@ export enum PlayerRole {
 
 export class ChatRoom {
   private players: player[];
+  public RoomID: string;
 
   constructor(players: player[]) {
     const roles = this.shuffleArray([...Object.values(PlayerRole)]);
@@ -19,6 +20,8 @@ export class ChatRoom {
       role: roles[index],
       status: playerStatus.InRoom, // Ensure status is set to InRoom
     }));
+
+    this.RoomID = crypto.randomUUID();
   }
 
   private shuffleArray<T>(array: T[]): T[] {
@@ -34,15 +37,21 @@ export class ChatRoom {
   }
 
   public broadcastMessage(sender: player, message: string) {
+    const senderplayer = this.players.find(
+      (player) => player.socket == sender.socket
+    );
+
+    if (!senderplayer) return;
+
     const broadcastMessage = JSON.stringify({
       type: CHAT_MESSAGE,
-      sender: sender.name,
-      role: sender.role,
+      sender: senderplayer.name,
+      role: senderplayer.role,
       message: message,
     });
 
     this.players.forEach((player) => {
-      if (player !== sender) {
+      if (player !== senderplayer) {
         player.socket.send(broadcastMessage);
       }
     });
